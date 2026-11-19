@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Entregas · {{ act.nombre }}{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <h1>{{ act.nombre }}</h1>
+  <div class="fila">
+    <form method="post" action="{{ url_for('sincronizar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}"><button>Sincronizar</button></form>
+    <a class="boton sec" href="{{ url_for('exportar_actividad', actividad_id=act.id) }}">Exportar CSV</a>
+    <a class="boton sec" href="{{ url_for('actividad', actividad_id=act.id) }}">Configurar</a>
+  </div>
+</div>
+
+{% if sin_identificar %}
+<section class="caja aviso">
+  <h2>Entregas sin identificar ({{ sin_identificar|length }})</h2>
+  <table>
+    <thead><tr><th>PR</th><th>Usuario</th><th>Carpeta</th><th>Motivo</th><th>Asignar a</th></tr></thead>
+    <tbody>
+    {% for s in sin_identificar %}
+      <tr>
+        <td><a href="{{ s.pr_url }}" target="_blank" rel="noopener">#{{ s.pr_numero }}</a> {{ s.pr_titulo }}</td>
+        <td>{{ s.autor }}</td>
+        <td><code>{{ s.raiz }}/{{ s.carpeta_detectada }}</code></td>
+        <td>{{ s.avisos|join(' ') }}</td>
+        <td>
+          <form method="post" action="{{ url_for('asignar', entrega_id=s.id) }}" class="fila">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            <select name="alumno_id" aria-label="Alumno"><option value="">—</option>{% for a in alumnos %}<option value="{{ a.id }}">{{ a.apellidos }}, {{ a.nombre }}</option>{% endfor %}</select>
+            <button class="sec">Asignar</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Alumno</th><th>PR</th><th>Comprobaciones</th><th>Estado</th><th class="n">Nota</th><th></th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    {% set p = f.e.principal %}
+    <tr>
+      <td>{{ f.alumno.apellidos }}, {{ f.alumno.nombre }}</td>
+      <td>{% if p %}<a href="{{ p.pr_url }}" target="_blank" rel="noopener">#{{ p.pr_numero }}</a> <span class="tenue">{{ p.pr_estado }}</span>{% if f.e.entregas|length > 1 %} <span class="pill aviso">{{ f.e.entregas|length }} PR</span>{% endif %}{% if p.cambios_tras_fecha %} <span class="pill aviso">cambios tras la fecha</span>{% endif %}{% else %}—{% endif %}</td>
+      <td>{% if p %}<span class="pill ok">{{ f.ok }} ok</span> {% if f.aviso %}<span class="pill aviso">{{ f.aviso }} revisar</span>{% endif %} {% if f.fallo %}<span class="pill mal">{{ f.fallo }} fallo</span>{% endif %}{% endif %}</td>
+      <td><span class="estado {{ f.e.estado }}">{{ ETIQUETAS[f.e.estado] }}</span></td>
+      <td class="n">{{ formato_nota(f.e.nota) or '—' }}</td>
+      <td><a href="{{ url_for('revisar', actividad_id=act.id, alumno_id=f.alumno.id) }}">{{ 'Corregir' if p else 'Ver' }}</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">No hay alumnos en el curso. <a href="{{ url_for('importar') }}">Importa la lista</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

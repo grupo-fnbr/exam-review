@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block titulo %}Actividades{% endblock %}
+{% block contenido %}
+<h1>Actividades</h1>
+<table>
+  <thead><tr><th>Actividad</th><th>Carpeta de entrega</th><th>Fecha límite</th><th class="n">Peso en la global</th><th>Enunciado</th><th></th></tr></thead>
+  <tbody>
+  {% for a in actividades %}
+    <tr>
+      <td><a href="{{ url_for('actividad', actividad_id=a.id) }}">{{ a.nombre }}</a>{% if not a.activa %} <span class="pill">inactiva</span>{% endif %}</td>
+      <td><code>{{ a.carpeta }}</code></td>
+      <td>{{ a.fecha_limite or '—' }}</td>
+      <td class="n">{{ a.peso_global }}</td>
+      <td>{{ a.enunciado or '—' }}</td>
+      <td><a href="{{ url_for('entregas', actividad_id=a.id) }}">Entregas</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">Todavía no hay actividades en este curso.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% if desconocidas %}
+<section class="caja">
+  <h2>Carpetas con entregas pero sin actividad</h2>
+  <p class="tenue">Detectadas en la última sincronización.</p>
+  {% for d in desconocidas %}
+  <form method="post" action="{{ url_for('actividad_nueva') }}" class="fila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="carpeta" value="{{ d }}">
+    <code>{{ d }}</code><input name="nombre" value="{{ d }}" aria-label="Nombre de la actividad"><button class="sec">Crear actividad</button>
+  </form>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="caja">
+  <h2>Enunciados publicados en el repositorio</h2>
+  <p class="tenue">Busca en la carpeta <code>{{ carpeta_enunciados or '/' }}</code> del repo del profesor los enunciados que aún no tienen actividad. <a href="{{ url_for('configuracion') }}">Cambiar carpeta</a>.</p>
+  <form method="get"><input type="hidden" name="buscar" value="1"><button class="sec">Buscar enunciados nuevos</button></form>
+  {% if error %}<p class="tenue">{{ error }}</p>{% endif %}
+  {% for c in candidatos %}
+  <form method="post" action="{{ url_for('actividad_nueva') }}" class="fila candidato">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="enunciado" value="{{ c.ruta }}">
+    <a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.nombre }}</a>
+    <input name="nombre" value="{{ c.nombre.rsplit('.', 1)[0] }}" aria-label="Nombre">
+    <input name="carpeta" placeholder="Carpeta de entrega (AEC-…)" aria-label="Carpeta de entrega">
+    <select name="plantilla" aria-label="Plantilla"><option value="">Comprobaciones básicas</option><option value="aec-git">Plantilla AEC Git</option></select>
+    <button class="sec">Crear</button>
+  </form>
+  {% endfor %}
+</section>
+
+<section class="caja">
+  <h2>Nueva actividad</h2>
+  <form method="post" action="{{ url_for('actividad_nueva') }}" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label>Nombre<input name="nombre" placeholder="AEC Git"></label>
+    <label>Carpeta de entrega dentro de <code>entregas/nombre.apellido/</code><input name="carpeta" placeholder="AEC-GIT"></label>
+    <label>Partir de
+      <select name="plantilla"><option value="aec-git">Plantilla AEC Git (fork, ramas, commits, merge, PR)</option><option value="">Comprobaciones básicas (carpeta y PR)</option></select>
+    </label>
+    <button>Crear</button>
+  </form>
+</section>
+{% endblock %}

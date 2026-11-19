@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titulo %}Cursos{% endblock %}
+{% block contenido %}
+<h1>Cursos</h1>
+<table>
+  <thead><tr><th>Asignatura</th><th>Curso</th><th class="n">Alumnos</th><th class="n">Actividades</th><th></th></tr></thead>
+  <tbody>
+  {% for c in cursos %}
+    <tr {% if c.id == actual %}class="actual"{% endif %}>
+      <td>{{ c.asignatura }}{% if c.archivado %} <span class="pill">archivado</span>{% endif %}</td>
+      <td>{{ c.anio }}</td>
+      <td class="n">{{ c.n_alumnos }}</td>
+      <td class="n">{{ c.n_actividades }}</td>
+      <td class="fila">
+        {% if c.id != actual %}<form method="post" action="{{ url_for('curso_accion', curso_id=c.id, accion='seleccionar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="sec">Trabajar en este</button></form>{% else %}<span class="pill ok">actual</span>{% endif %}
+        <form method="post" action="{{ url_for('curso_accion', curso_id=c.id, accion='archivar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="sec">{{ 'Desarchivar' if c.archivado else 'Archivar' }}</button></form>
+        <details><summary>Borrar</summary>
+          <form method="post" action="{{ url_for('curso_accion', curso_id=c.id, accion='borrar') }}" class="pila">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            <label>Escribe <code>{{ c.anio }}</code> para borrar alumnos y notas de este curso<input name="confirmar" autocomplete="off"></label>
+            <button class="peligro">Borrar definitivamente</button>
+          </form>
+        </details>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Aún no hay cursos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<section class="caja">
+  <h2>Nuevo curso académico</h2>
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label>Asignatura<input name="asignatura" value="Introducción a la Gestión de Proyectos de Software" required></label>
+    <label>Curso académico<input name="anio" placeholder="2026-27" required></label>
+    {% if cursos %}
+    <label>Copiar actividades y rúbricas de
+      <select name="copiar_de"><option value="">No copiar</option>{% for c in cursos %}<option value="{{ c.id }}">{{ c.asignatura }} {{ c.anio }}</option>{% endfor %}</select>
+    </label>
+    {% endif %}
+    <button>Crear curso</button>
+  </form>
+</section>
+{% endblock %}

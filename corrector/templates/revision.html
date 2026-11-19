@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block titulo %}{{ al.apellidos }}, {{ al.nombre }} · {{ act.nombre }}{% endblock %}
+{% block contenido %}
+{% set p = e.principal %}
+<div class="cabecera">
+  <div>
+    <p class="tenue"><a href="{{ url_for('entregas', actividad_id=act.id) }}">{{ act.nombre }}</a></p>
+    <h1>{{ al.apellidos }}, {{ al.nombre }}</h1>
+    <p class="tenue">{{ al.email or '' }}{% if al.usuario_git %} · GitHub <a href="https://github.com/{{ al.usuario_git }}" target="_blank" rel="noopener">{{ al.usuario_git }}</a>{% endif %} · carpeta esperada <code>{{ al.carpeta_esperada }}</code></p>
+  </div>
+  <div class="fila">
+    {% if anterior %}<a class="boton sec" href="{{ url_for('revisar', actividad_id=act.id, alumno_id=anterior) }}">← Anterior</a>{% endif %}
+    {% if siguiente %}<a class="boton sec" href="{{ url_for('revisar', actividad_id=act.id, alumno_id=siguiente) }}">Siguiente →</a>{% endif %}
+  </div>
+</div>
+
+<div class="resumen">
+  <span class="estado {{ e.estado }}">{{ ETIQUETAS[e.estado] }}</span>
+  <span class="nota-grande">{{ formato_nota(e.nota) or '—' }}</span>
+  {% if e.suspenso %}<span class="pill mal">Estructura incorrecta: nota máxima {{ act.tope_estructura }}</span>{% endif %}
+</div>
+
+{% if not p %}
+  <p>No hay ninguna pull request de este alumno para esta actividad. Cuenta como <strong>no presentado (0)</strong>.</p>
+{% else %}
+<div class="dos">
+<section class="caja">
+  <h2>Pull request</h2>
+  <p><a href="{{ p.pr_url }}" target="_blank" rel="noopener">#{{ p.pr_numero }} {{ p.pr_titulo }}</a> · {{ p.pr_estado }} · de <code>{{ p.head_repo }}:{{ p.head_ref }}</code></p>
+  <p class="tenue">Carpeta: <code>{{ p.raiz }}/{{ p.carpeta_detectada }}/{{ p.carpeta_actividad }}</code> · Commit {{ (p.sha_congelado or p.head_sha)[:7] }}{% if p.sha_congelado %} (congelado en la fecha límite){% endif %}</p>
+  {% for a in avisos_entrega %}<div class="flash aviso">{{ a }}</div>{% endfor %}
+  <table>
+    <thead><tr><th>Comprobación</th><th>Resultado</th></tr></thead>
+    <tbody>
+    {% for k, r in e.resultados.items() %}
+      <tr><td>{{ CATALOGO[k].titulo if k in CATALOGO else k }}</td><td><span class="pill {{ {'ok':'ok','aviso':'aviso','fallo':'mal'}.get(r.estado, '') }}">{{ r.estado }}</span> {{ r.detalle }}</td></tr>
+    {% else %}
+      <tr><td colspan="2" class="tenue">Sin resultados. Sincroniza para calcularlos.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="caja">
+  <h2>Informe y capturas</h2>
+  {% if error_archivos %}<p class="flash error">{{ error_archivos }}</p>{% endif %}
+  <ul class="archivos">
+  {% for a in archivos %}
+    <li {% if vista and vista.ruta == a.ruta %}class="sel"{% endif %}><a href="?ver={{ a.ruta|urlencode }}">{{ a.nombre }}</a> <a class="tenue" href="{{ a.url }}" target="_blank" rel="noopener">GitHub</a></li>
+  {% else %}
+    <li class="tenue">No hay archivos en la carpeta de la actividad.</li>
+  {% endfor %}
+  </ul>
+  {% if vista %}
+    {% if vista.tipo == 'markdown' %}<iframe class="visor" sandbox="" srcdoc="{{ vista.html }}" title="{{ vista.ruta }}"></iframe>
+    {% elif vista.tipo == 'texto' %}<pre class="visor-texto">{{ vista.texto }}</pre>
+    {% elif vista.tipo == 'imagen' %}<img class="captura" src="{{ vista.url }}" alt="{{ vista.ruta }}">
+    {% elif vista.tipo == 'error' %}<p class="flash error">{{ vista.mensaje }}</p>
+    {% else %}<p>Este formato no se puede mostrar aquí. <a href="{{ vista.url }}" target="_blank" rel="noopener">Abrirlo en GitHub</a> para descargarlo.</p>{% endif %}
+  {% endif %}
+</section>
+</div>
+{% endif %}
+
+<section class="caja">
+  <h2>Corrección</h2>
+  {% if not e.criterios %}<p class="flash aviso">Esta actividad no tiene rúbrica. <a href="{{ url_for('actividad', actividad_id=act.id) }}">Impórtala</a>.</p>{% endif %}
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <table class="rubrica">
+      <thead><tr><th>Criterio</th><th class="n">Peso</th><th>Nivel</th><th>Sugerido</th><th>Comentario (privado)</th></tr></thead>
+      <tbody>
+      {% for c in e.criterios %}
+        {% set actual = e.niveles.get(c.id) %}
+        <tr>
+          <td>{{ c.nombre }}</td>
+          <td class="n">{{ c.peso }} %</td>
+          <td class="niveles">
+            {% for n in range(1, act.nivel_max + 1) %}<label><input type="radio" name="nivel_{{ c.id }}" value="{{ n }}" {% if actual == n %}checked{% endif %}> {{ n }}</label>{% endfor %}
+            <label><input type="radio" name="nivel_{{ c.id }}" value="" {% if actual is none %}checked{% endif %}> —</label>
+          </td>
+          <td>{% if sugeridos[c.id] %}<span class="pill">{{ sugeridos[c.id] }}</span>{% else %}<span class="tenue">manual</span>{% endif %}</td>
+          <td><input name="comentario_{{ c.id }}" value="{{ comentarios.get(c.id) or '' }}" aria-label="Comentario"></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="rejilla">
+      <label>Suspenso por estructura
+        <select name="puerta_manual">
+          <option value="" {% if not e.revision or e.revision.puerta_manual is none %}selected{% endif %}>Automático (según la comprobación)</option>
+          <option value="1" {% if e.revision and e.revision.puerta_manual == 1 %}selected{% endif %}>Sí, aplicar tope {{ act.tope_estructura }}</option>
+          <option value="0" {% if e.revision and e.revision.puerta_manual == 0 %}selected{% endif %}>No, la estructura es válida</option>
+        </select>
+      </label>
+      {% if e.entregas|length > 1 %}
+      <label>PR que se corrige
+        <select name="entrega_principal">{% for x in e.entregas %}<option value="{{ x.id }}" {% if p and x.id == p.id %}selected{% endif %}>#{{ x.pr_numero }} {{ x.pr_titulo }}</option>{% endfor %}</select>
+      </label>
+      {% elif p %}<input type="hidden" name="entrega_principal" value="{{ p.id }}">{% endif %}
+    </div>
+    <label>Comentario general (privado)<textarea name="comentario" rows="3">{{ e.revision.comentario if e.revision and e.revision.comentario else '' }}</textarea></label>
+    <div class="fila">
+      <button>Guardar</button>
+      {% if siguiente %}<button class="sec" name="siguiente" value="{{ siguiente }}">Guardar y siguiente</button>{% endif %}
+    </div>
+  </form>
+</section>
+{% endblock %}

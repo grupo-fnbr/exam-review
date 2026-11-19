@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Corrector AEC{% endblock %} · Corrector AEC</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='estilo.css') }}">
+</head>
+<body>
+{% if session.get('llave') %}
+<header class="barra">
+  <a class="marca" href="{{ url_for('panel') }}">Corrector AEC</a>
+  <nav>
+    <a href="{{ url_for('panel') }}">Panel</a>
+    <a href="{{ url_for('actividades') }}">Actividades</a>
+    <a href="{{ url_for('alumnos') }}">Alumnos</a>
+    <a href="{{ url_for('notas') }}">Notas</a>
+    <a href="{{ url_for('cursos') }}">Cursos</a>
+    <a href="{{ url_for('configuracion') }}">Configuración</a>
+  </nav>
+  <div class="derecha">
+    {% if curso %}<span class="curso">{{ curso.asignatura }} · {{ curso.anio }}{% if curso.archivado %} (archivado){% endif %}</span>{% endif %}
+    <form method="post" action="{{ url_for('salir') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="sec">Cerrar y cifrar</button></form>
+  </div>
+</header>
+{% endif %}
+<main>
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in mensajes %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block contenido %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Alumnos{% endblock %}
+{% block contenido %}
+<div class="cabecera"><h1>Alumnos</h1><a class="boton" href="{{ url_for('importar') }}">Importar lista</a></div>
+<p class="tenue">La carpeta esperada sigue el formato <code>nombre.apellido</code>. Añade variantes aceptadas separadas por comas si un alumno usa otra forma válida. El usuario de GitHub se rellena solo en la primera entrega que se identifica por la carpeta.</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Apellidos, nombre</th><th>Email</th><th>Usuario GitHub</th><th>Carpeta esperada</th><th>Variantes</th><th>Activo</th><th></th></tr></thead>
+  <tbody>
+  {% for a in alumnos %}
+    <tr id="al-{{ a.id }}" {% if not a.activo %}class="inactivo"{% endif %}>
+      <td>{{ a.apellidos }}, {{ a.nombre }}</td>
+      <td>{{ a.email or '' }}</td>
+      <td><input form="f-{{ a.id }}" name="usuario_git" value="{{ a.usuario_git or '' }}" size="14" aria-label="Usuario GitHub"></td>
+      <td><input form="f-{{ a.id }}" name="carpeta_esperada" value="{{ a.carpeta_esperada }}" size="16" aria-label="Carpeta esperada"></td>
+      <td><input form="f-{{ a.id }}" name="variantes" value="{{ a.variantes|join(', ') }}" size="16" aria-label="Variantes"></td>
+      <td><input form="f-{{ a.id }}" type="checkbox" name="activo" value="1" {% if a.activo %}checked{% endif %} aria-label="Activo"></td>
+      <td><form id="f-{{ a.id }}" method="post" action="{{ url_for('alumno_editar', alumno_id=a.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="sec">Guardar</button></form></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7">Sin alumnos. <a href="{{ url_for('importar') }}">Importa la lista del campus</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

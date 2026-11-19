@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block titulo %}{{ act.nombre }}{% endblock %}
+{% block contenido %}
+<div class="cabecera"><h1>{{ act.nombre }}</h1><a class="boton" href="{{ url_for('entregas', actividad_id=act.id) }}">Ver entregas</a></div>
+
+<section class="caja">
+  <h2>Datos generales</h2>
+  <form method="post" class="rejilla">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="general">
+    <label>Nombre<input name="nombre" value="{{ act.nombre }}"></label>
+    <label>Carpeta de entrega<input name="carpeta" value="{{ act.carpeta }}"></label>
+    <label>Carpetas raíz aceptadas<input name="carpetas_raiz" value="{{ act.carpetas_raiz|join(', ') }}"></label>
+    <label>Fecha límite (hora local)<input type="datetime-local" name="fecha_limite" value="{{ (act.fecha_limite or '')[:16] }}"></label>
+    <label>Nivel máximo de la rúbrica<input type="number" name="nivel_max" min="2" max="10" value="{{ act.nivel_max }}"></label>
+    <label>Factor de la fórmula<input name="factor" value="{{ act.factor }}"></label>
+    <label>Tope si falla la estructura<input name="tope_estructura" value="{{ act.tope_estructura }}"></label>
+    <label>Peso en la nota global<input name="peso_global" value="{{ act.peso_global }}"></label>
+    <label>Comprobación que decide el suspenso por estructura
+      <select name="check_puerta"><option value="">Ninguna</option>{% for k in act.comprobaciones %}<option value="{{ k }}" {% if act.check_puerta == k %}selected{% endif %}>{{ CATALOGO[k].titulo }}</option>{% endfor %}</select>
+    </label>
+    <label class="check"><input type="checkbox" name="activa" value="1" {% if act.activa %}checked{% endif %}> Actividad activa</label>
+    <p class="tenue ancho">Nota = Σ(nivel × peso) × {{ act.factor }}. Con niveles 1-{{ act.nivel_max }} la nota va de {{ formato_nota((act.factor|float)) }} a {{ formato_nota(act.factor * act.nivel_max) }}. Si falla la estructura, como mucho {{ act.tope_estructura }}. Sin entrega: 0.</p>
+    <div class="ancho"><button>Guardar</button></div>
+  </form>
+</section>
+
+<section class="caja">
+  <h2>Rúbrica</h2>
+  {% if criterios %}
+  <table>
+    <thead><tr><th>Criterio</th><th class="n">Peso</th><th>Comprobaciones que sugieren el nivel</th></tr></thead>
+    <tbody>
+    {% for c in criterios %}<tr><td>{{ c.nombre }}</td><td class="n">{{ c.peso }} %</td><td>{% for k in c.checks %}<span class="pill">{{ CATALOGO[k].titulo if k in CATALOGO else k }}</span> {% else %}<span class="tenue">manual</span>{% endfor %}</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total</th><th class="n {% if suma != 100 %}mal{% endif %}">{{ suma }} %</th><th>{% if suma != 100 %}Los pesos deben sumar 100 %{% endif %}</th></tr></tfoot>
+  </table>
+  {% else %}<p class="tenue">Sin criterios todavía.</p>{% endif %}
+  <div class="rejilla">
+    <form method="post" enctype="multipart/form-data" class="pila">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="rubrica">
+      <label>Importar rúbrica (.docx con columnas Criterio y Peso)<input type="file" name="fichero" accept=".docx" required></label>
+      <button class="sec">Importar</button>
+    </form>
+    <form method="post" class="pila">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="criterios">
+      <label>Editar a mano: una línea por criterio, <code>Nombre; peso; comprobaciones</code>
+        <textarea name="criterios" rows="10">{{ texto_criterios }}</textarea></label>
+      <p class="tenue">Comprobaciones disponibles: {% for k in CATALOGO %}<code>{{ k }}</code> {% endfor %}</p>
+      <button class="sec">Guardar criterios</button>
+    </form>
+  </div>
+</section>
+
+<section class="caja">
+  <h2>Comprobaciones automáticas</h2>
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="comprobaciones">
+    {% for k, info in CATALOGO.items() %}
+    {% set cfg = act.comprobaciones.get(k) %}
+    <fieldset>
+      <label class="check"><input type="checkbox" name="usar_{{ k }}" value="1" {% if cfg is not none %}checked{% endif %}> {{ info.titulo }} <code>{{ k }}</code></label>
+      {% for p, etiqueta in info.params.items() %}
+        {% set v = (cfg or {}).get(p) %}
+        <label class="param">{{ etiqueta }}<input name="{{ k }}__{{ p }}" value="{% if v is iterable and v is not string %}{{ v|join(', ') }}{% elif v is not none %}{{ v }}{% endif %}"></label>
+      {% endfor %}
+    </fieldset>
+    {% endfor %}
+    <button>Guardar comprobaciones</button>
+  </form>
+</section>
+
+<details class="caja">
+  <summary>Borrar actividad</summary>
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="borrar">
+    <label>Escribe <code>{{ act.nombre }}</code> para borrarla con sus entregas y notas<input name="confirmar" autocomplete="off"></label>
+    <button class="peligro">Borrar definitivamente</button>
+  </form>
+</details>
+{% endblock %}

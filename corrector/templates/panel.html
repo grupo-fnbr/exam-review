@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Panel{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <h1>Panel</h1>
+  <form method="post" action="{{ url_for('sincronizar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button>Sincronizar entregas</button></form>
+</div>
+<p class="tenue">
+  {% if repo %}Repositorio: <a href="https://github.com/{{ repo }}" target="_blank" rel="noopener">{{ repo }}</a>{% else %}<a href="{{ url_for('configuracion') }}">Configura el repositorio del profesor</a>{% endif %}
+  · {{ n_alumnos }} alumnos activos
+  · Última sincronización: {{ ultima or 'nunca' }}
+</p>
+{% if n_alumnos == 0 %}<div class="flash aviso">No hay alumnos en este curso. <a href="{{ url_for('importar') }}">Importa la lista</a> para saber quién no ha entregado.</div>{% endif %}
+{% if desconocidas %}<div class="flash aviso">Hay entregas en carpetas que no corresponden a ninguna actividad: {{ desconocidas|join(', ') }}. <a href="{{ url_for('actividades') }}">Crea la actividad</a>.</div>{% endif %}
+<table>
+  <thead><tr><th>Actividad</th><th>Carpeta</th><th>Fecha límite</th><th class="n">Corregidas</th><th class="n">Pendientes</th><th class="n">Susp. estructura</th><th class="n">No presentados</th><th class="n">Sin identificar</th><th></th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td><a href="{{ url_for('entregas', actividad_id=f.act.id) }}">{{ f.act.nombre }}</a>{% if not f.act.activa %} <span class="pill">inactiva</span>{% endif %}</td>
+      <td><code>{{ f.act.carpeta }}</code></td>
+      <td>{{ f.act.fecha_limite or '—' }}</td>
+      <td class="n">{{ f.cuenta.corregida }}</td>
+      <td class="n">{{ f.cuenta.pendiente }}</td>
+      <td class="n">{{ f.cuenta.suspenso_estructura }}</td>
+      <td class="n">{{ f.cuenta.no_presentado }}</td>
+      <td class="n">{% if f.sin_identificar %}<span class="pill aviso">{{ f.sin_identificar }}</span>{% else %}0{% endif %}</td>
+      <td><a href="{{ url_for('exportar_actividad', actividad_id=f.act.id) }}">CSV</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9">Sin actividades. <a href="{{ url_for('actividades') }}">Crea la primera</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

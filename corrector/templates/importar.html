@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Importar alumnos{% endblock %}
+{% block contenido %}
+<h1>Importar lista de alumnos</h1>
+{% if etapa == 'subir' %}
+<p class="tenue">CSV o Excel exportado del campus. Debe tener cabecera; las columnas se asignan en el paso siguiente. Volver a importar a mitad de curso añade altas y marca bajas sin borrar notas.</p>
+<form method="post" enctype="multipart/form-data" class="pila caja">
+  <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="etapa" value="subir">
+  <label>Fichero<input type="file" name="fichero" accept=".csv,.xlsx,.txt,.tsv" required></label>
+  <button>Continuar</button>
+</form>
+{% else %}
+<form method="post" class="pila">
+  <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="clave" value="{{ clave }}">
+  {% if etapa == 'mapear' %}
+    <p>{{ n }} filas. Indica qué columna es cada dato:</p>
+    <div class="rejilla">
+    {% for campo, etiqueta in campos.items() %}
+      <label>{{ etiqueta }}
+        <select name="{{ campo }}"><option value="">—</option>{% for c in cabecera %}<option {% if mapeo.get(campo) == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+      </label>
+    {% endfor %}
+    </div>
+    <div class="scroll"><table><thead><tr>{% for c in cabecera %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for f in datos %}<tr>{% for v in f %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+    <button name="etapa" value="vista">Ver vista previa</button>
+  {% else %}
+    {% for campo, col in mapeo.items() %}<input type="hidden" name="{{ campo }}" value="{{ col }}">{% endfor %}
+    {% for a in avisos %}<div class="flash aviso">{{ a }}</div>{% endfor %}
+    <div class="scroll"><table><thead><tr><th>Apellidos</th><th>Nombre</th><th>Email</th><th>Usuario GitHub</th><th>Carpeta esperada</th></tr></thead>
+    <tbody>{% for a in alumnos %}<tr><td>{{ a.apellidos }}</td><td>{{ a.nombre }}</td><td>{{ a.email or '' }}</td><td>{{ a.usuario_git or '' }}</td><td><code>{{ a.carpeta_esperada }}</code></td></tr>{% endfor %}</tbody></table></div>
+    <div class="fila"><button name="etapa" value="confirmar">Importar {{ alumnos|length }} alumnos</button><a href="{{ url_for('importar') }}">Cancelar</a></div>
+  {% endif %}
+</form>
+{% endif %}
+{% endblock %}

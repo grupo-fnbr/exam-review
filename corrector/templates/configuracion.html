@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración{% endblock %}
+{% block contenido %}
+<h1>Configuración</h1>
+<div class="rejilla">
+<section class="caja">
+  <h2>Repositorio del profesor</h2>
+  <p class="tenue">Donde los alumnos abren sus pull requests.</p>
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="repo">
+    <label>Repositorio (usuario/nombre o URL)<input name="repo" value="{{ repo }}" placeholder="profesor/gestion-proyectos"></label>
+    <label>Rama principal<input name="rama_base" value="{{ rama_base }}"></label>
+    <label>Carpeta de enunciados en el repo<input name="carpeta_enunciados" value="{{ carpeta_enunciados }}" placeholder="actividades"></label>
+    <button>Guardar</button>
+  </form>
+</section>
+<section class="caja">
+  <h2>Token de GitHub</h2>
+  <p class="tenue">Opcional para repos públicos, pero sin él GitHub solo permite 60 consultas por hora. Crea un <em>fine-grained token</em> con acceso de solo lectura a repositorios públicos.</p>
+  <p>Estado: {% if token_en == 'llavero' %}<span class="pill ok">en el llavero del sistema</span>{% elif token_en == 'boveda' %}<span class="pill ok">en los datos cifrados</span>{% else %}<span class="pill">sin token</span>{% endif %}</p>
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="token">
+    <label>Nuevo token<input type="password" name="token" autocomplete="off"></label>
+    <button>Guardar token</button>
+  </form>
+  <div class="fila">
+    <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="probar"><button class="sec">Probar conexión</button></form>
+    {% if token_en %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="borrar_token"><button class="sec peligro">Borrar token</button></form>{% endif %}
+  </div>
+</section>
+<section class="caja">
+  <h2>Contraseña maestra</h2>
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="contrasena">
+    <label>Actual<input type="password" name="actual" autocomplete="current-password" required></label>
+    <label>Nueva<input type="password" name="nueva" autocomplete="new-password" minlength="10" required></label>
+    <label>Repetir nueva<input type="password" name="repetir" autocomplete="new-password" minlength="10" required></label>
+    <button>Cambiar</button>
+  </form>
+  <p class="tenue">Datos cifrados en: <code>{{ ruta }}</code></p>
+</section>
+</div>
+<section>
+  <h2>Registro de actividad</h2>
+  <table><thead><tr><th>Momento (UTC)</th><th>Acción</th></tr></thead><tbody>
+  {% for a in auditoria %}<tr><td>{{ a.momento }}</td><td>{{ a.accion }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endblock %}

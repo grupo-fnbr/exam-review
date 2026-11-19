@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Acceso{% endblock %}
+{% block contenido %}
+<section class="acceso">
+  <h1>Corrector AEC</h1>
+  {% if primera_vez %}
+  <p>Primera vez: elige una contraseña maestra. Cifra todos los datos de alumnos y notas en este ordenador. <strong>Si la olvidas no hay forma de recuperar los datos.</strong></p>
+  {% else %}
+  <p>Introduce la contraseña maestra para abrir los datos.</p>
+  {% endif %}
+  <form method="post" class="pila">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label>Contraseña<input type="password" name="contrasena" autocomplete="{{ 'new-password' if primera_vez else 'current-password' }}" required autofocus {% if primera_vez %}minlength="10"{% endif %}></label>
+    {% if primera_vez %}<label>Repítela<input type="password" name="repetir" autocomplete="new-password" required minlength="10"></label>{% endif %}
+    <button>{{ 'Crear datos cifrados' if primera_vez else 'Abrir' }}</button>
+  </form>
+</section>
+{% endblock %}

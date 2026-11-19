@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titulo %}Notas{% endblock %}
+{% block contenido %}
+<div class="cabecera"><h1>Notas del curso</h1><a class="boton" href="{{ url_for('exportar_global') }}">Exportar CSV</a></div>
+<p class="tenue">Nota global = media ponderada de las actividades activas (peso configurable en cada actividad). Queda vacía mientras alguna actividad esté pendiente de corregir.</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Alumno</th>{% for a in actividades %}<th class="n">{{ a.nombre }}<br><span class="tenue">peso {{ a.peso_global }}</span></th>{% endfor %}<th class="n">Global</th></tr></thead>
+  <tbody>
+  {% for t in tabla %}
+    <tr>
+      <td>{{ t.alumno.apellidos }}, {{ t.alumno.nombre }}</td>
+      {% for n in t.notas %}<td class="n">{% if n is none %}<a href="{{ url_for('revisar', actividad_id=actividades[loop.index0].id, alumno_id=t.alumno.id) }}">pendiente</a>{% else %}{{ formato_nota(n) }}{% endif %}</td>{% endfor %}
+      <td class="n"><strong>{{ formato_nota(t.global) or '—' }}</strong></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
